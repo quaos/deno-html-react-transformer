@@ -5,5 +5,6 @@ export interface TransformerContext {
     component: any;
     props: Record<string, any>;
     children?: React.ReactNode;
+    depth: number;
     errors: Error[];
 }

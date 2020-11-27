@@ -25,9 +25,11 @@ export const App: React.FC<{}> = ({ }) => {
     dangerouslyAllowScripts: false,
     // Optional (default: false)
     dangerouslyAllowIFrames: false,
+    // Optional (default: undefined)
+    maxDepth: 64,
   });
   transformer.on(TransformerEvent.Element, (ctx: TransformContext) => {
-    if (ctx.sourceNode.nodeName === "a") {
+    if (ctx.source.nodeName === "a") {
       // If using React Router lib:
       ctx.element = Link;
       ctx.props.to = ctx.sourceNode.href;
