@@ -55,32 +55,6 @@ export class Transformer {
         }
     }
 
-    // parseDomTree(source: string): Node {
-    //     const root = new HTMLElement();
-
-    //     const parser = new Parser(
-    //         {
-    //             onopentag(name: string, attribs: any) {
-    //                 if (name === "script" && attribs.type === "text/javascript") {
-    //                     console.log("JS! Hooray!");
-    //                 }
-    //             },
-    //             ontext(text) {
-    //                 console.log("-->", text);
-    //             },
-    //             onclosetag(tagname) {
-    //                 if (tagname === "script") {
-    //                     console.log("That's it?!");
-    //                 }
-    //             },
-    //             onend() {
-    //                 console.log("Done");
-    //             },
-    //         },
-    //         { decodeEntities: true }
-    //     );
-    // }
-
     walkNode(source: Node, level: number): React.ReactNode {
         const tagName = source.nodeName.toLowerCase();
 
@@ -112,7 +86,7 @@ export class Transformer {
         if (source.nodeType === DOMConstants.ELEMENT_NODE) {
             // HACK
             const sourceElement = <Element><unknown>source;
-            // console.log(`Found element: ${sourceElement.nodeName}`);
+
             Object.assign(ctx.props, sourceElement.attributes);
             isTransparent = ([
                 "",
@@ -141,37 +115,29 @@ export class Transformer {
                 ctx.children = [];
                 for (let i = 0; i < source.childNodes.length; i++) {
                     try {
-                        const child = source.childNodes[i];
+                        const sourceChild = source.childNodes[i];
                         // console.log(`Found child node [${i}] => `, child);
-                        ctx.children.push(this.walkNode(child, level + 1));
+                        const child = this.walkNode(sourceChild, level + 1);
+                        (child !== undefined) && (child !== null) && ctx.children.push(child);
                     } catch (err) {
                         ctx.errors.push(err);
-                        return null
                     }
                 }
             }
         }
-        //  else {
-        //     const container = source.ownerDocument?.createElement("div");
-        //     if (container) {
-        //         const nodeCopy = source.cloneNode(true);
-        //         console.log("Cloned node:", nodeCopy);
-        //         container.appendChild(nodeCopy);
-        //         ctx.children = container.innerHTML;
-        //     }
-        // }
         if (ctx.errors.length >= 1) {
             this.eventEmitter.emit(TransformerEvent.Errors, ctx);
         }
 
         if (isTransparent) {
-            // console.log(`${" ".repeat(level)}<>`);
-            return React.createElement(React.Fragment, {}, ctx.children);
+            const fragment = React.createElement(React.Fragment, {}, ...ctx.children);
+            // console.log(`<#${tagName}> children=`, ctx.children, " => ", fragment);
+            return fragment;
         }
 
-        console.log(`${" ".repeat(level)}<${ctx.component}>`);
-
-        return React.createElement(ctx.component!, ctx.props!, ctx.children)
+        const element = React.createElement(ctx.component!, ctx.props!, ...ctx.children);
+        // console.log(`<${ctx.component}> children=`, ctx.children, " => ", element);
+        return element
     }
 
     getNodeContent(source: Node): string | undefined {

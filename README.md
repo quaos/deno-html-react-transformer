@@ -4,7 +4,7 @@ Tool for Transforming HTML/DOM to React element in Deno
 
 ## Warning
 
-Do not forget to enforce XSS protection with libraries like ()[DOMPurify], even thought this module has some basic protections such as disabling scripts by default!
+Do not forget to enforce XSS protection with libraries like [DOMPurify](https://github.com/cure53/DOMPurify), even thought this module has some basic protections such as excluding `<script>` tags by default!
 
 ## Usage
 
@@ -29,11 +29,14 @@ export const App: React.FC<{}> = ({ }) => {
     maxDepth: 64,
   });
   transformer.on(TransformerEvent.Element, (ctx: TransformContext) => {
-    if (ctx.source.nodeName === "a") {
+    if (ctx.component === "a") {
       // If using React Router lib:
-      ctx.element = Link;
-      ctx.props.to = ctx.sourceNode.href;
-      ctx.props.onClick = (evt) => interceptLinkClick(evt, ctx);
+      ctx.component = Link;
+      let { href } = ctx.props;
+      ctx.props = {
+        to: href,
+        onClick = (evt) => interceptLinkClick(evt, ctx),
+      };
       ctx.children = (
         <span>External link: {ctx.children}</span>
       );
@@ -52,4 +55,8 @@ export const App: React.FC<{}> = ({ }) => {
 ```
 
 ## Dependencies
+
 * Deno version ^1.5.4
+* React version ^1.7
+* (deno_dom)[https://deno.land/x/deno_dom@v0.1.3-alpha2] (for testing from CLI)
+
