@@ -11,6 +11,13 @@ export enum TransformerEvent {
     MaxDepthReached = "maxDepthReached",
 }
 
+export interface TransformerComponentProps {
+    source: string | Node;
+}
+
+export type TransformerComponent =
+    (props: TransformerComponentProps) => React.ReactNode;
+
 export class Transformer {
     dangerouslyAllowScripts: boolean = false;
     dangerouslyAllowIFrames: boolean = false;
@@ -52,6 +59,14 @@ export class Transformer {
             this.eventEmitter.emit(TransformerEvent.Errors, ctx);
 
             throw err;
+        }
+    }
+
+    public getComponent(): TransformerComponent {
+        return (props: TransformerComponentProps) => {
+            let { source } = props;
+
+            return this.transform(source)
         }
     }
 

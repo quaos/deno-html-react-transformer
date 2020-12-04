@@ -46,12 +46,25 @@ export const App: React.FC<{}> = ({ }) => {
     ctx.errors.forEach(console.error);
   });
 
-  const result = transformer.transform(html);
-  console.log(result);
+  const Renderer = transformer.getComponent();
 
-  return result
+  return (
+    <Renderer source={html} />
+  )
 } 
 
+```
+
+## Running Example
+
+***yarn***
+```shell
+yarn example:build && yarn example:run
+```
+
+***npm***
+```shell
+npm run example:build && npm run example:run
 ```
 
 ## Dependencies
