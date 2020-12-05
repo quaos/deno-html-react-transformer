@@ -22,7 +22,7 @@
   "scripts": {
     "test": "deno test",
     "cache": "deno cache src/deps/*.ts",
-    "example:build": "deno bundle --config tsconfig.json example/src/client.tsx example/public/client.js",
+    "example:build": "deno bundle --config tsconfig.json example/src/client.tsx example/public/assets/js/client.bundle.js",
     "example:run": "deno run --allow-net --allow-read --allow-run example/src/server.ts --browse example",
     "example:cache": "deno cache example/src/deps/*.ts"
   },

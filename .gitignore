@@ -3,7 +3,7 @@ npm-debug.*
 .vscode/**/*
 !.vscode/settings.json
 
-example/public/client.js
+example/public/assets/js/client.js
 
 .env
 **/.env

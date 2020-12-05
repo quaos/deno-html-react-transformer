@@ -36,7 +36,9 @@ async function runServer(opts?: RunServerOptions): Promise<number> {
       await opn(`http://${host}:${port}/`);
     }
 
-    return 0;
+    return await new Promise((_resolve, _reject) => {
+      // Continue running ...
+    });
   } catch (err) {
     console.error(err);
     throw err;

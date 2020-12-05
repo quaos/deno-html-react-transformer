@@ -2,9 +2,10 @@ import { EventEmitter } from "./deps/events.ts";
 import { React } from "./deps/react.ts";
 
 import { TransformerContext } from "./context.ts";
-import { DOMConstants } from "./dom-polyfill.ts";
+import { DOMConstants, useDOMParser } from "./dom-polyfill.ts";
 
 export enum TransformerEvent {
+    Initialized = "initialized",
     Element = "element",
     Text = "text",
     Errors = "error",
@@ -23,6 +24,7 @@ export class Transformer {
     dangerouslyAllowIFrames: boolean = false;
     maxDepth?: number;
     eventEmitter: EventEmitter;
+    initState: boolean = false;
 
     public constructor(props?: Partial<Transformer>) {
         this.eventEmitter = new EventEmitter();
@@ -31,6 +33,29 @@ export class Transformer {
 
     public on(eventName: TransformerEvent, listener: (ctx: TransformerContext) => void): void {
         this.eventEmitter.on(eventName as string, listener);
+    }
+
+    public async init() {
+        try {
+            this.initState = await useDOMParser();
+            if (!this.initState) {
+                throw new Error("Transformer initialization failed");
+            }
+            const initCtx = <TransformerContext>{
+                component: "",
+                props: {},
+                errors: <Error[]>[],
+            };
+            this.eventEmitter.emit(TransformerEvent.Initialized, initCtx);
+        } catch (err) {
+            const errCtx = <TransformerContext>{
+                component: "",
+                props: {},
+                errors: [err],
+            };
+            this.eventEmitter.emit(TransformerEvent.Errors, errCtx);
+            throw err;
+        }
     }
 
     public transform(source: Node | string): React.ReactNode {
@@ -44,8 +69,7 @@ export class Transformer {
                     return null;
                 }
                 source = rootElement;
-            };
-            // console.log("Transforming:", source);
+            }
 
             return this.walkNode(source as Node, 0)
         } catch (err) {
@@ -65,8 +89,12 @@ export class Transformer {
     public getComponent(): TransformerComponent {
         return (props: TransformerComponentProps) => {
             let { source } = props;
+            let [transformerReady, setTransformerReady] = React.useState<boolean>(this.initState);
+            if (!transformerReady) {
+                this.init().then(() => setTransformerReady(this.initState));
+            }
 
-            return this.transform(source)
+            return (transformerReady) ? this.transform(source) : null
         }
     }
 
@@ -101,8 +129,10 @@ export class Transformer {
         if (source.nodeType === DOMConstants.ELEMENT_NODE) {
             // HACK
             const sourceElement = <Element><unknown>source;
-
-            Object.assign(ctx.props, sourceElement.attributes);
+            Array.from(sourceElement.attributes)
+                .forEach((attrNode: Attr) => {
+                    ctx.props[attrNode.name] = attrNode.value;
+                });
             isTransparent = ([
                 "",
                 "body",
@@ -110,28 +140,23 @@ export class Transformer {
             shouldWalkChildren = true;
         } else if ((source.nodeType === DOMConstants.DOCUMENT_NODE)
             || (source.nodeType === DOMConstants.DOCUMENT_FRAGMENT_NODE)) {
-            // console.log(`Found document/fragment`);
             ctx.component = "";
             isTransparent = true;
             shouldWalkChildren = true;
         } else {
-            // console.log(`Found node <${source.nodeName}> (type: ${source.nodeType})`);
             const content = this.getNodeContent(source);
-            // console.log(`${" ".repeat(level)}"${content}"`);
             if (content) {
                 ctx.children = content;
                 this.eventEmitter.emit(TransformerEvent.Text, ctx);
             }
             return content;
         }
-        this.eventEmitter.emit(TransformerEvent.Element, ctx);
         if (shouldWalkChildren) {
             if ((source.childNodes) && (source.childNodes.length >= 1)) {
                 ctx.children = [];
                 for (let i = 0; i < source.childNodes.length; i++) {
                     try {
                         const sourceChild = source.childNodes[i];
-                        // console.log(`Found child node [${i}] => `, child);
                         const child = this.walkNode(sourceChild, level + 1);
                         (child !== undefined) && (child !== null) && ctx.children.push(child);
                     } catch (err) {
@@ -143,15 +168,14 @@ export class Transformer {
         if (ctx.errors.length >= 1) {
             this.eventEmitter.emit(TransformerEvent.Errors, ctx);
         }
+        this.eventEmitter.emit(TransformerEvent.Element, ctx);
 
         if (isTransparent) {
             const fragment = React.createElement(React.Fragment, {}, ...ctx.children);
-            // console.log(`<#${tagName}> children=`, ctx.children, " => ", fragment);
             return fragment;
         }
 
         const element = React.createElement(ctx.component!, ctx.props!, ...ctx.children);
-        // console.log(`<${ctx.component}> children=`, ctx.children, " => ", element);
         return element
     }
 

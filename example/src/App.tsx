@@ -40,6 +40,7 @@ transformer.on(TransformerEvent.Element, (ctx: TransformerContext) => {
   traceBuf.push(`${" ".repeat(ctx.depth)}<${ctx.component}>`);
   if (ctx.component === "a") {
     ctx.component = ExternalLink;
+    console.log("Transforming <a> => <ExternalLink />; props=", ctx.props, "; children=", ctx.children);
   }
 });
 transformer.on(TransformerEvent.Text, (ctx: TransformerContext) => {
@@ -51,19 +52,18 @@ transformer.on(TransformerEvent.Errors, (ctx: TransformerContext) => {
 const Renderer = transformer.getComponent();
 
 const App = (props: any) => {
-  let [ loading, setLoading ] = React.useState(true);
+  let [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     console.log("Start loading...");
 
-  const timerId = setTimeout(() => {
-    setLoading(false);
-    console.log("Finished loading");
-  }, 1000);
+    transformer.init().then(() => {
+      setLoading(false);
+      console.log("Finished loading");
+    });
 
     return () => {
       //cleanup
-      clearTimeout(timerId);
     }
   }, []);
 
@@ -73,8 +73,10 @@ const App = (props: any) => {
         <img src="assets/img/deno-logo.png" style={styles.logo} />
         <img src="assets/img/react-logo192.png" style={styles.logo} />
       </p>
-      <pre>Loading ...{(loading) ? "" : " OK!"}</pre>
-      <Renderer source={sourceHtml} />
+      {(loading)
+        ? <pre>Loading ...</pre>
+        : <Renderer source={sourceHtml} />
+      }
     </div>
   );
 };
