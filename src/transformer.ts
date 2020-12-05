@@ -90,9 +90,15 @@ export class Transformer {
         return (props: TransformerComponentProps) => {
             let { source } = props;
             let [transformerReady, setTransformerReady] = React.useState<boolean>(this.initState);
-            if (!transformerReady) {
-                this.init().then(() => setTransformerReady(this.initState));
-            }
+            React.useEffect(() => {
+                if (!transformerReady) {
+                    this.init().then(() => setTransformerReady(this.initState));
+                }
+
+                return () => {
+                    // cleanup
+                }
+            }, [transformerReady]);
 
             return (transformerReady) ? this.transform(source) : null
         }
