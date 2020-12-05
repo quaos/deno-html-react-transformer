@@ -11,7 +11,7 @@ Do not forget to enforce XSS protection with libraries like [DOMPurify](https://
 ```typescript
 import {
   Transformer, TransformContext, TransformerEvent,
-} from "https://deno.land/x/html_react_transformer@1.0.0/mod.ts";
+} from "https://deno.land/x/html_react_transformer@v1.0.0/mod.ts";
 
 const html = `<div>
   <h1>Test</h1>
