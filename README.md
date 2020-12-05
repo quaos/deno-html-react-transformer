@@ -69,7 +69,7 @@ npm run example:build && npm run example:run
 
 ## Dependencies
 
-* Deno version ^1.5.4
+* Deno version ^1.5
 * React version ^1.7
-* (deno_dom)[https://deno.land/x/deno_dom@v0.1.3-alpha2] (for testing from CLI)
+* [deno_dom](https://deno.land/x/deno_dom@v0.1.3-alpha2) (for testing from CLI)
 
