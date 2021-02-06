@@ -1,6 +1,6 @@
 {
   "name": "deno-html-react-transformer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Deno HTML-to-React Transformer",
   "author": {
     "name": "Chakrit W.",
@@ -20,7 +20,7 @@
     "github": "https://github.com/quaos/deno-html-react-transformer"
   },
   "scripts": {
-    "test": "deno test",
+    "test": "deno test --allow-read --config tsconfig.json ",
     "cache": "deno cache src/deps/*.ts",
     "example:build": "deno bundle --config tsconfig.json example/src/client.tsx example/public/assets/js/client.bundle.js",
     "example:run": "deno run --allow-net --allow-read --allow-run example/src/server.ts --browse example",
