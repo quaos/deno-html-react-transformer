@@ -1,4 +1,4 @@
-import { React } from "../../src/deps/react.ts";
+import { React } from "./deps/react.ts";
 
 import type { TransformerContext } from "../../src/context.ts";
 import { Transformer, TransformerEvent } from "../../src/transformer.ts";
@@ -49,7 +49,7 @@ transformer.on(TransformerEvent.Text, (ctx: TransformerContext) => {
 transformer.on(TransformerEvent.Errors, (ctx: TransformerContext) => {
   ctx.errors.forEach(console.error);
 });
-const Renderer = transformer.getComponent();
+const Renderer = transformer.getComponent(React);
 
 const App = (props: any) => {
   let [loading, setLoading] = React.useState(true);

@@ -2,9 +2,9 @@
 
 Tool for Transforming HTML/DOM to React element in Deno
 
-## Warning
+## WARNING
 
-Do not forget to enforce XSS protection with libraries like [DOMPurify](https://github.com/cure53/DOMPurify), even thought this module has some basic protections such as excluding `<script>` tags by default!
+Do not forget to enforce XSS protection with libraries like [DOMPurify](https://github.com/cure53/DOMPurify), even thought this module provides some basic protections such as blocking `<script>` and `<iframe>` tags by default!
 
 ## Usage
 
@@ -46,7 +46,12 @@ export const App: React.FC<{}> = ({ }) => {
     ctx.errors.forEach(console.error);
   });
 
-  const Renderer = transformer.getComponent();
+  /**
+   * Supply your own React instance here
+   * if you face "Invalid hook call" or other errors
+   * relating to redundant React instances 
+   */
+  const Renderer = transformer.getComponent(React);
 
   return (
     <Renderer source={html} />
@@ -70,6 +75,6 @@ npm run example:build && npm run example:run
 ## Dependencies
 
 * Deno version ^1.5
-* React version ^1.7
+* React version ^17.0
 * [deno_dom](https://deno.land/x/deno_dom@v0.1.3-alpha2) (for testing from CLI)
 

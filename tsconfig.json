@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "isolatedModules": false,
+    "isolatedModules": true,
     "allowJs": false,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

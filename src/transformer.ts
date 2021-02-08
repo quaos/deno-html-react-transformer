@@ -1,5 +1,5 @@
 import { EventEmitter } from "./deps/events.ts";
-import { React } from "./deps/react.ts";
+import { React as DefaultReact } from "./deps/react.ts";
 
 import { TransformerContext } from "./context.ts";
 import { DOMConstants, useDOMParser } from "./dom-polyfill.ts";
@@ -16,8 +16,19 @@ export interface TransformerComponentProps {
     source: string | Node;
 }
 
-export type TransformerComponent =
-    (props: TransformerComponentProps) => React.ReactNode;
+// HACK: Workaround for React typings
+interface ReactInstanceProps {
+    createElement(component: any, props: any, ...children: any): DefaultReact.ReactNode;
+    useState<T>(st: T): any;
+    useEffect(callback: ReactUseEffectCallbackFunc, deps: any[]): any;
+}
+interface ReactUseEffectCallbackFunc {
+    (): any;
+}
+
+export interface TransformerComponent {
+    (props: TransformerComponentProps): DefaultReact.ReactNode;
+}
 
 export class Transformer {
     dangerouslyAllowScripts: boolean = false;
@@ -58,7 +69,10 @@ export class Transformer {
         }
     }
 
-    public transform(source: Node | string): React.ReactNode {
+    public transform(
+        source: Node | string,
+        React: ReactInstanceProps = DefaultReact,
+    ): DefaultReact.ReactNode {
         try {
             if (typeof source === "string") {
                 const doc = new DOMParser().parseFromString(source, "text/html");
@@ -71,7 +85,7 @@ export class Transformer {
                 source = rootElement;
             }
 
-            return this.walkNode(source as Node, 0)
+            return this.walkNode(source as Node, 0, React)
         } catch (err) {
             const ctx = <TransformerContext>{
                 source: source,
@@ -86,9 +100,16 @@ export class Transformer {
         }
     }
 
-    public getComponent(): TransformerComponent {
-        return (props: TransformerComponentProps) => {
-            let { source } = props;
+    /**
+     * Supply your own React instance here
+     * if you face "Invalid hook call" or other errors
+     * relating to redundant React instances 
+     */
+
+    public getComponent(
+        React: ReactInstanceProps = DefaultReact,
+    ): TransformerComponent {
+        return ({ source }: TransformerComponentProps) => {
             let [transformerReady, setTransformerReady] = React.useState<boolean>(this.initState);
             React.useEffect(() => {
                 if (!transformerReady) {
@@ -100,11 +121,15 @@ export class Transformer {
                 }
             }, [transformerReady]);
 
-            return (transformerReady) ? this.transform(source) : null
+            return (transformerReady) ? this.transform(source, React) : null
         }
     }
 
-    walkNode(source: Node, level: number): React.ReactNode {
+    walkNode(
+        source: Node,
+        level: number,
+        React: ReactInstanceProps,
+    ): any {
         const tagName = source.nodeName.toLowerCase();
 
         const ctx = <TransformerContext>{
@@ -163,7 +188,7 @@ export class Transformer {
                 for (let i = 0; i < source.childNodes.length; i++) {
                     try {
                         const sourceChild = source.childNodes[i];
-                        const child = this.walkNode(sourceChild, level + 1);
+                        const child = this.walkNode(sourceChild, level + 1, React);
                         (child !== undefined) && (child !== null) && ctx.children.push(child);
                     } catch (err) {
                         ctx.errors.push(err);
@@ -177,7 +202,7 @@ export class Transformer {
         this.eventEmitter.emit(TransformerEvent.Element, ctx);
 
         if (isTransparent) {
-            const fragment = React.createElement(React.Fragment, {}, ...ctx.children);
+            const fragment = React.createElement(DefaultReact.Fragment, {}, ...ctx.children);
             return fragment;
         }
 

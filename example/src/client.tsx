@@ -1,4 +1,4 @@
-import { React } from "../../src/deps/react.ts";
+import { React } from "./deps/react.ts";
 import { ReactDOM } from "./deps/react-dom.ts";
 
 import App from "./App.tsx";
