@@ -199,6 +199,13 @@ export class Transformer {
         if (ctx.errors.length >= 1) {
             this.eventEmitter.emit(TransformerEvent.Errors, ctx);
         }
+        // Predefined transformation rules
+        if (ctx.props) {
+            if (ctx.props.class) {
+                ctx.props.className = ctx.props.class;
+                delete ctx.props.class;
+            }
+        }
         this.eventEmitter.emit(TransformerEvent.Element, ctx);
 
         if (isTransparent) {
@@ -206,7 +213,20 @@ export class Transformer {
             return fragment;
         }
 
-        const element = React.createElement(ctx.component!, ctx.props!, ...ctx.children);
+        const elementArgs: [any, any, ...any] = [ctx.component!, ctx.props || {}];
+        if (ctx.children) {
+            if (typeof ctx.children[Symbol.iterator] === 'function') {
+                for (let child of ctx.children) {
+                    if ((typeof child !== "undefined") && (child !== null)) {
+                        elementArgs.push(child);
+                    }
+                }
+            } else {
+                elementArgs.push(ctx.children);
+            }
+        }
+        const element = React.createElement.apply(undefined, elementArgs);
+
         return element
     }
 

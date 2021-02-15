@@ -15,20 +15,24 @@ const styles = {
 
 interface ExternalLinkProps {
   href?: string;
+  target?: string;
 }
 
 const ExternalLink = (props: React.PropsWithChildren<ExternalLinkProps>) => {
-  let { href, children } = props;
+  let { href, target, children } = props;
 
   return (
-    <a href={`/redirect/to/${href}`}><span>EXTERNAL LINK WARNING: {children}</span></a>
+    <a href={`/redirect/to/${href}`} target={target}>
+      EXTERNAL LINK WARNING: {children} <i className="fa fa-external-link-alt"></i>
+    </a>
   )
 }
 
 const sourceHtml = `
 <div>
   <h1>Test</h1>
-  <p><a href="xyz">Next page</a></p>
+  <p><span class="lead-word">T</span>esting HTML <i class="fa fa-coffee"></i></p>
+  <p><a href="xyz" target="_blank"> Next page</a></p>
   <script>console.log('XSS! You are PWNED!')</script>
   <iframe src="http://www.dangerous.org/PWNED"></iframe>
 </div>
