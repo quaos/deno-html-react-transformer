@@ -2,5 +2,9 @@
     "deno.enable": true,
     "deno.unstable": true,
     "typescript.format.enable": true,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "deno.suggest.imports.hosts": {
+        "https://esm.sh": false,
+        "https://deno.land": true
+    }
 }
