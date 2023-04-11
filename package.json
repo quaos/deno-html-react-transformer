@@ -20,12 +20,12 @@
     "github": "https://github.com/quaos/deno-html-react-transformer"
   },
   "scripts": {
-    "test": "deno test --allow-read --config tsconfig.json ",
-    "cache": "deno cache src/deps/*.ts",
-    "transformer:test": "deno run --allow-read --allow-net --config tsconfig.json src/transformer.test.tsx",
-    "example:build": "deno bundle --config tsconfig.json example/src/client.tsx example/public/assets/js/client.bundle.js",
-    "example:run": "deno run --allow-net --allow-read --allow-run example/src/server.ts --browse example",
-    "example:cache": "deno cache example/src/deps/*.ts"
+    "deno:cache": "deno cache src/deps/*.ts",
+    "test": "deno test --allow-read --allow-net",
+    "test:transformer": "deno run --allow-read --allow-net src/transformer.test.tsx",
+    "example:deno:cache": "deno cache example/src/deps/*.ts",
+    "example:build": "deno bundle example/src/client.tsx example/public/assets/js/client.bundle.js",
+    "example:run": "deno run --allow-net --allow-read --allow-run example/src/server.ts --browse example"
   },
   "dependencies": {},
   "devDependencies": {},

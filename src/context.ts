@@ -1,10 +1,11 @@
-import { React } from "./deps/react.ts";
+import React, { DynamicComponent } from "./deps/react.ts";
 
 export interface TransformerContext {
-    source: Node;
-    component: React.ReactNode;
-    props: Record<string, any>;
-    children?: React.ReactNode;
+    children?: React.ReactNode[];
+    component: DynamicComponent | null;
     depth: number;
     errors: Error[];
+    key?: string;
+    props: Record<string, unknown>;
+    source: Node | null;
 }

@@ -1,7 +1,17 @@
+import * as denoDom from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+const {
+    DOMParser,
+    Document,
+    Element,
+    HTMLDocument,
+    Node,
+} = denoDom;
+
+export default denoDom;
 export {
     DOMParser,
     Document,
     Element,
+    HTMLDocument,
     Node,
-} from "https://deno.land/x/deno_dom@v0.1.3-alpha2/deno-dom-wasm.ts";
-// "https://deno.land/x/deno_dom@v0.1.3-alpha2/deno-dom-native.ts";
+};

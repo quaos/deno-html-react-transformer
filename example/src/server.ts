@@ -1,5 +1,5 @@
 import * as abc from "./deps/abc.ts";
-import { opn } from "./deps/opn.ts";
+import { open } from "./deps/opn.ts";
 
 export interface RunServerOptions {
   cwd?: string;
@@ -13,7 +13,7 @@ async function runServer(opts?: RunServerOptions): Promise<number> {
     const cwd = opts?.cwd || ".";
     const sourceDir = `${cwd}/public`;
     const host = opts?.host || "localhost";
-    const port = opts?.port || 8080;
+    const port = opts?.port || 3000;
 
     abc.MIME.DB[".css"] = "text/css";
 
@@ -33,7 +33,7 @@ async function runServer(opts?: RunServerOptions): Promise<number> {
       .start({ port });
 
     if (opts?.browse) {
-      await opn(`http://${host}:${port}/`);
+      await open(`http://${host}:${port}/`);
     }
 
     return await new Promise((_resolve, _reject) => {

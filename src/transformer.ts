@@ -1,101 +1,78 @@
 import { EventEmitter } from "./deps/events.ts";
-import { React as DefaultReact } from "./deps/react.ts";
+import DefaultReact, { DynamicComponent } from "./deps/react.ts";
 
 import { TransformerContext } from "./context.ts";
-import { DOMConstants, useDOMParser } from "./dom-polyfill.ts";
+import { DOMConstants, useDOMParser } from "./dom-parser.polyfill.ts";
+import React from "./deps/react.ts";
+
+// HACK: Workaround for React typings
+// interface ReactUseEffectCallbackFunc {
+//     (): any;
+// }
+interface ReactInstanceType {
+    createElement: typeof DefaultReact.createElement; // (component: DynamicComponent, props: any, ...children: DefaultReact.ReactNode[]): DefaultReact.ReactNode;
+    Fragment: typeof DefaultReact.Fragment;
+    useEffect: typeof DefaultReact.useEffect; // (callback: ReactUseEffectCallbackFunc, deps: any[]): any;
+    useMemo: typeof DefaultReact.useMemo;
+    useRef: typeof DefaultReact.useRef;
+    useState: typeof DefaultReact.useState; // <T>(st: T): any;
+}
 
 export enum TransformerEvent {
     Initialized = "initialized",
     Element = "element",
     Text = "text",
-    Errors = "error",
+    Error = "error",
     MaxDepthReached = "maxDepthReached",
 }
 
 export interface TransformerComponentProps {
+    loadingComponent?: DefaultReact.ReactNode;
+    onError?: (err: Error) => void;
     source: string | Node;
 }
 
-// HACK: Workaround for React typings
-interface ReactInstanceProps {
-    createElement(component: any, props: any, ...children: any): DefaultReact.ReactNode;
-    useState<T>(st: T): any;
-    useEffect(callback: ReactUseEffectCallbackFunc, deps: any[]): any;
-}
-interface ReactUseEffectCallbackFunc {
-    (): any;
+export type TransformerComponent = DefaultReact.ComponentType<TransformerComponentProps>;
+
+export interface TransformerType {
+    getComponent(React?: ReactInstanceType): TransformerComponent;
+    transform(source: Node | string, React?: ReactInstanceType): DefaultReact.ReactNode;
 }
 
-export interface TransformerComponent {
-    (props: TransformerComponentProps): DefaultReact.ReactNode;
-}
-
-export class Transformer {
-    dangerouslyAllowScripts: boolean = false;
-    dangerouslyAllowIFrames: boolean = false;
+export class Transformer extends EventEmitter implements TransformerType {
+    dangerouslyAllowScripts = false;
+    dangerouslyAllowIFrames = false;
     maxDepth?: number;
-    eventEmitter: EventEmitter;
-    initState: boolean = false;
+    // eventEmitter: EventEmitter;
+    initState = false;
 
-    public constructor(props?: Partial<Transformer>) {
-        this.eventEmitter = new EventEmitter();
-        (props) && Object.assign(this, props);
+    constructor(props?: Partial<Transformer>) {
+        super();
+        // this.eventEmitter = new EventEmitter();
+        props && Object.assign(this, props);
     }
 
-    public on(eventName: TransformerEvent, listener: (ctx: TransformerContext) => void): void {
-        this.eventEmitter.on(eventName as string, listener);
-    }
+    // on(eventName: TransformerEvent, listener: (ctx: TransformerContext) => void): void {
+    //     this.eventEmitter.on(eventName as string, listener);
+    // }
 
-    public async init() {
+    async init() {
         try {
             this.initState = await useDOMParser();
             if (!this.initState) {
                 throw new Error("Transformer initialization failed");
             }
             const initCtx = <TransformerContext>{
-                component: "",
                 props: {},
                 errors: <Error[]>[],
             };
-            this.eventEmitter.emit(TransformerEvent.Initialized, initCtx);
+            this.emit(TransformerEvent.Initialized, initCtx);
         } catch (err) {
             const errCtx = <TransformerContext>{
-                component: "",
                 props: {},
                 errors: [err],
             };
-            this.eventEmitter.emit(TransformerEvent.Errors, errCtx);
-            throw err;
-        }
-    }
-
-    public transform(
-        source: Node | string,
-        React: ReactInstanceProps = DefaultReact,
-    ): DefaultReact.ReactNode {
-        try {
-            if (typeof source === "string") {
-                const doc = new DOMParser().parseFromString(source, "text/html");
-                const rootElement = (doc)
-                    ? (doc.body || doc)
-                    : undefined;
-                if (!rootElement) {
-                    return null;
-                }
-                source = rootElement;
-            }
-
-            return this.walkNode(source as Node, 0, React)
-        } catch (err) {
-            const ctx = <TransformerContext>{
-                source: source,
-                component: "",
-                props: {},
-                depth: 0,
-                errors: [err],
-            };
-            this.eventEmitter.emit(TransformerEvent.Errors, ctx);
-
+            this.emit(TransformerEvent.Error, errCtx);
             throw err;
         }
     }
@@ -105,42 +82,124 @@ export class Transformer {
      * if you face "Invalid hook call" or other errors
      * relating to redundant React instances 
      */
-
-    public getComponent(
-        React: ReactInstanceProps = DefaultReact,
+    getComponent(
+        React: ReactInstanceType = DefaultReact,
     ): TransformerComponent {
-        return ({ source }: TransformerComponentProps) => {
-            let [transformerReady, setTransformerReady] = React.useState<boolean>(this.initState);
+        return ({ loadingComponent, onError, source }: TransformerComponentProps) => {
+            const [isReady, setIsReady] = React.useState(this.initState);
+            const errorsRef = React.useRef<Error[]>([]);
+
+            const collectError = (err: Error) => {
+                errorsRef.current.push(err);
+            }
+
             React.useEffect(() => {
-                if (!transformerReady) {
-                    this.init().then(() => setTransformerReady(this.initState));
+                (async () => {
+                    if (isReady) {
+                        return;
+                    }
+
+                    errorsRef.current = [];
+                    try {
+                        await this.init();
+                        setIsReady(this.initState);
+                    } catch (err) {
+                        console.error(err);
+                        collectError(err);
+                        onError?.(err as Error);
+                    }
+                })();
+
+                // cleanup
+                return () => {};
+            }, [isReady]);
+
+            const [transformedNode, setTransformedNode] = React.useState<DefaultReact.ReactNode>(null);
+            React.useEffect(() => {
+                if (!isReady) {
+                    return;
                 }
 
-                return () => {
-                    // cleanup
-                }
-            }, [transformerReady]);
+                errorsRef.current = [];
+                this.on(TransformerEvent.Error, collectError);
+                const transformResult = this.transform(source, React);
+                this.off(TransformerEvent.Error, collectError);
+                onError != null && errorsRef.current.forEach(onError);
 
-            return (transformerReady) ? this.transform(source, React) : null
+                if (transformResult != null
+                    && typeof transformResult === "object"
+                    && "type" in transformResult) {
+                    setTransformedNode(transformResult);
+                }
+
+                // Wrap node in Fragment
+                setTransformedNode(React.createElement(
+                    React.Fragment,
+                    {},
+                    transformResult
+                ));
+            }, [isReady, source]);
+
+            return React.createElement(
+                React.Fragment,
+                {},
+                (isReady ? transformedNode : loadingComponent) ?? null
+            );
         }
     }
 
-    walkNode(
+    transform(
+        source: Node | string,
+        React: ReactInstanceType = DefaultReact,
+    ): DefaultReact.ReactNode {
+        let sourceNode: Node | null = null
+        try {
+            if (typeof source === "string") {
+                const doc = new globalThis.DOMParser().parseFromString(source, "text/html");
+                const rootElement = (doc)
+                    ? (doc.body || doc)
+                    : undefined;
+                if (!rootElement) {
+                    return null;
+                }
+                sourceNode = rootElement;
+            } else {
+                sourceNode = source
+            }
+
+            return this.walkNode(sourceNode, 0, React)
+        } catch (err) {
+            const ctx: TransformerContext = {
+                component: null,
+                source: sourceNode,
+                props: {},
+                depth: 0,
+                errors: [err],
+            };
+            this.emit(TransformerEvent.Error, ctx);
+
+            throw err;
+        }
+    }
+
+    protected walkNode(
         source: Node,
         level: number,
-        React: ReactInstanceProps,
-    ): any {
+        React: ReactInstanceType,
+        key?: string
+    ): DefaultReact.ReactNode {
         const tagName = source.nodeName.toLowerCase();
 
-        const ctx = <TransformerContext>{
-            source: source,
-            component: tagName,
-            props: {},
+        const ctx: TransformerContext = {
+            component: tagName as DynamicComponent,
             depth: level,
             errors: [],
+            key,
+            props: {},
+            source: source,
         };
         if ((this.maxDepth !== undefined) && (level >= this.maxDepth)) {
-            this.eventEmitter.emit(TransformerEvent.MaxDepthReached, ctx);
+            this.emit(TransformerEvent.MaxDepthReached, ctx);
             return null;
         }
 
@@ -159,7 +218,7 @@ export class Transformer {
         let shouldWalkChildren = false;
         if (source.nodeType === DOMConstants.ELEMENT_NODE) {
             // HACK
-            const sourceElement = <Element><unknown>source;
+            const sourceElement = source as unknown as Element;
             Array.from(sourceElement.attributes)
                 .forEach((attrNode: Attr) => {
                     ctx.props[attrNode.name] = attrNode.value;
@@ -171,25 +230,27 @@ export class Transformer {
             shouldWalkChildren = true;
         } else if ((source.nodeType === DOMConstants.DOCUMENT_NODE)
             || (source.nodeType === DOMConstants.DOCUMENT_FRAGMENT_NODE)) {
-            ctx.component = "";
+            ctx.component = null;
             isTransparent = true;
             shouldWalkChildren = true;
         } else {
             const content = this.getNodeContent(source);
             if (content) {
-                ctx.children = content;
-                this.eventEmitter.emit(TransformerEvent.Text, ctx);
+                ctx.children = [content];
+                this.emit(TransformerEvent.Text, ctx);
             }
             return content;
         }
         if (shouldWalkChildren) {
-            if ((source.childNodes) && (source.childNodes.length >= 1)) {
+            if (source.childNodes && source.childNodes.length >= 1) {
                 ctx.children = [];
                 for (let i = 0; i < source.childNodes.length; i++) {
                     try {
                         const sourceChild = source.childNodes[i];
-                        const child = this.walkNode(sourceChild, level + 1, React);
-                        (child !== undefined) && (child !== null) && ctx.children.push(child);
+                        const child = this.walkNode(sourceChild, level + 1, React, String(i));
+                        if (child != null) {
+                            ctx.children.push(child);
+                        }
                     } catch (err) {
                         ctx.errors.push(err);
                     }
@@ -197,7 +258,7 @@ export class Transformer {
             }
         }
         if (ctx.errors.length >= 1) {
-            this.eventEmitter.emit(TransformerEvent.Errors, ctx);
+            this.emit(TransformerEvent.Error, ctx);
         }
         // Predefined transformation rules
         if (ctx.props) {
@@ -206,18 +267,23 @@ export class Transformer {
                 delete ctx.props.class;
             }
         }
-        this.eventEmitter.emit(TransformerEvent.Element, ctx);
+        this.emit(TransformerEvent.Element, ctx);
 
         if (isTransparent) {
-            const fragment = React.createElement(DefaultReact.Fragment, {}, ...ctx.children);
+            const fragment = React.createElement(DefaultReact.Fragment, {}, ctx.children);
             return fragment;
         }
 
-        const elementArgs: [any, any, ...any] = [ctx.component!, ctx.props || {}];
+        const propsWithKey = {
+            ...ctx.props,
+            key: ctx.key,
+        };
+
+        const elementArgs: [DynamicComponent, any, ...DefaultReact.ReactNode[]] = [ctx.component!, propsWithKey];
         if (ctx.children) {
-            if (typeof ctx.children[Symbol.iterator] === 'function') {
-                for (let child of ctx.children) {
-                    if ((typeof child !== "undefined") && (child !== null)) {
+            if (Array.isArray(ctx.children) && typeof ctx.children[Symbol.iterator] === 'function') {
+                for (const child of ctx.children) {
+                    if (child != null) {
                         elementArgs.push(child);
                     }
                 }
@@ -225,19 +291,19 @@ export class Transformer {
                 elementArgs.push(ctx.children);
             }
         }
-        const element = React.createElement.apply(undefined, elementArgs);
+        const element = React.createElement.apply(React, elementArgs);
 
         return element
     }
 
-    getNodeContent(source: Node): string | undefined {
+    protected getNodeContent(source: Node): string | undefined {
         let s = undefined;
         switch (source.nodeType) {
             case DOMConstants.TEXT_NODE:
-                s = `${(<Text><unknown>source).data}`;
+                s = `${(source as unknown as Text).data}`;
                 break;
             case DOMConstants.CDATA_SECTION_NODE:
-                s = `${(<Text><unknown>source).data}`;
+                s = `${(source  as unknown as CDATASection).data}`;
                 break;
             default:
                 break;

@@ -1,14 +1,11 @@
-import { React } from "./deps/react.ts";
-import { ReactDOM } from "./deps/react-dom.ts";
+import React from "./deps/react.ts";
+import { createRoot } from "./deps/react-dom.ts";
 
 import App from "./App.tsx";
 
 window.addEventListener("DOMContentLoaded", (evt) => {
-  (ReactDOM as any).render(
-    <App />,
-    // @ts-ignore
-    document.getElementById("root"),
-  );
+  const reactRoot = createRoot(document.getElementById("root")!);
+  reactRoot.render(<App />);
 });
 
 export {};

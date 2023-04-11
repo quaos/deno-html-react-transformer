@@ -1,6 +1,8 @@
 {
+    "deno.config": "./deno.json",
     "deno.enable": true,
     "deno.unstable": true,
+    "deno.lint": true,
     "typescript.format.enable": true,
     "editor.formatOnSave": true,
     "deno.suggest.imports.hosts": {

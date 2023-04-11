@@ -1,6 +1,6 @@
 // HACK: Workaround for Top-Level-Await-Imports in browser
 export async function useDOMParser() {
-    const prom = ("Deno" in window)
+    const prom = ("Deno" in globalThis)
         ? import("./deps/deno_dom.ts")
             .then(denoDom => {
                 globalThis.DOMParser = globalThis.DOMParser || denoDom.DOMParser;

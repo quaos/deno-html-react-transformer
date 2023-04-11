@@ -1,5 +1,5 @@
 // import { assertEquals } from "./deps/std.ts";
-import { React } from "./deps/react.ts";
+import React from "./deps/react.ts";
 
 import type { TransformerContext } from "./context.ts";
 import { Transformer, TransformerEvent } from "./transformer.ts";
@@ -12,15 +12,21 @@ const ExternalLink = (props: React.PropsWithChildren<ExternalLinkProps>) => {
   let { href, children } = props;
 
   return (
-    <a href={`/redirect/to/${href}`}><span>EXTERNAL LINK WARNING: {children}</span></a>
-  )
-}
+    <a href={`/redirect/to/${href}`}>
+      <span>EXTERNAL LINK WARNING: {children}</span>
+    </a>
+  );
+};
 
 // Deno.test("test HTML string to React transform", () => {
 const expected = (
   <div>
     <h1>Test</h1>
-    <p><ExternalLink href="/redirect/to/xyz">EXTERNAL LINK WARNING: Next Page</ExternalLink></p>
+    <p>
+      <ExternalLink href="/redirect/to/xyz">
+        EXTERNAL LINK WARNING: Next Page
+      </ExternalLink>
+    </p>
   </div>
 );
 
@@ -48,7 +54,7 @@ transformer.on(TransformerEvent.Element, (ctx: TransformerContext) => {
 transformer.on(TransformerEvent.Text, (ctx: TransformerContext) => {
   traceBuf.push(`${" ".repeat(ctx.depth)}${ctx.children}`);
 });
-transformer.on(TransformerEvent.Errors, (ctx: TransformerContext) => {
+transformer.on(TransformerEvent.Error, (ctx: TransformerContext) => {
   ctx.errors.forEach(console.error);
 });
 (async function () {

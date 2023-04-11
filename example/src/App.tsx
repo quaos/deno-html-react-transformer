@@ -1,7 +1,8 @@
-import { React } from "./deps/react.ts";
+import React, { useMemo, useState } from "./deps/react.ts";
 
-import type { TransformerContext } from "../../src/context.ts";
-import { Transformer, TransformerEvent } from "../../src/transformer.ts";
+import type { TransformerContext } from "@src/context.ts";
+import { Transformer, TransformerEvent } from "@src/transformer.ts";
+import type { TransformerComponentProps } from "@src/transformer.ts";
 
 const styles = {
   logo: {
@@ -11,6 +12,11 @@ const styles = {
     width: "192px",
     height: "192px",
   },
+  error: {
+    backgroundColor: "red",
+    color: "white",
+    fontWeight: "bold",
+  },
 };
 
 interface ExternalLinkProps {
@@ -19,14 +25,15 @@ interface ExternalLinkProps {
 }
 
 const ExternalLink = (props: React.PropsWithChildren<ExternalLinkProps>) => {
-  let { href, target, children } = props;
+  const { href, target, children } = props;
 
   return (
     <a href={`/redirect/to/${href}`} target={target}>
-      EXTERNAL LINK WARNING: {children} <i className="fa fa-external-link-alt"></i>
+      EXTERNAL LINK WARNING: {children}{" "}
+      <i className="fa fa-external-link-alt"></i>
     </a>
-  )
-}
+  );
+};
 
 const sourceHtml = `
 <div>
@@ -38,38 +45,39 @@ const sourceHtml = `
 </div>
 `;
 
-const transformer = new Transformer();
-const traceBuf: string[] = [];
-transformer.on(TransformerEvent.Element, (ctx: TransformerContext) => {
-  traceBuf.push(`${" ".repeat(ctx.depth)}<${ctx.component}>`);
-  if (ctx.component === "a") {
-    ctx.component = ExternalLink;
-    console.log("Transforming <a> => <ExternalLink />; props=", ctx.props, "; children=", ctx.children);
-  }
-});
-transformer.on(TransformerEvent.Text, (ctx: TransformerContext) => {
-  traceBuf.push(`${" ".repeat(ctx.depth)}${ctx.children}`);
-});
-transformer.on(TransformerEvent.Errors, (ctx: TransformerContext) => {
-  ctx.errors.forEach(console.error);
-});
-const Renderer = transformer.getComponent(React);
+// deno-lint-ignore no-empty-interface
+export interface AppProps {}
 
-const App = (props: any) => {
-  let [loading, setLoading] = React.useState(true);
+const App = ({}: AppProps) => {
+  const [error, setError] = useState<Error | undefined>();
 
-  React.useEffect(() => {
-    console.log("Start loading...");
+  const Renderer = useMemo<React.ComponentType<TransformerComponentProps>>(
+    () => {
+      const transformer = new Transformer();
+      const traceBuf: string[] = [];
+      transformer.on(TransformerEvent.Element, (ctx: TransformerContext) => {
+        traceBuf.push(`${" ".repeat(ctx.depth)}<${ctx.component}>`);
+        if (ctx.component === "a") {
+          ctx.component = ExternalLink;
+          console.log(
+            "Transforming <a> => <ExternalLink />; props=",
+            ctx.props,
+            "; children=",
+            ctx.children,
+          );
+        }
+      });
+      transformer.on(TransformerEvent.Text, (ctx: TransformerContext) => {
+        traceBuf.push(`${" ".repeat(ctx.depth)}${ctx.children}`);
+      });
+      transformer.on(TransformerEvent.Error, (ctx: TransformerContext) => {
+        ctx.errors.forEach(console.error);
+      });
 
-    transformer.init().then(() => {
-      setLoading(false);
-      console.log("Finished loading");
-    });
-
-    return () => {
-      //cleanup
-    }
-  }, []);
+      return transformer.getComponent(React);
+    },
+    [],
+  );
 
   return (
     <div className="container">
@@ -77,12 +85,13 @@ const App = (props: any) => {
         <img src="assets/img/deno-logo.png" style={styles.logo} />
         <img src="assets/img/react-logo192.png" style={styles.logo} />
       </p>
-      {(loading)
-        ? <pre>Loading ...</pre>
-        : <Renderer source={sourceHtml} />
-      }
+      {error && <p className="error" style={styles.error}>{error.message}</p>}
+      <Renderer
+        source={sourceHtml}
+        loadingComponent={<pre>Loading ...</pre>}
+        onError={setError}
+      />
     </div>
   );
 };
-
 export default App;

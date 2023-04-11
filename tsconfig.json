@@ -1,18 +1,21 @@
 {
   "compilerOptions": {
-    "isolatedModules": true,
     "allowJs": false,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "alwaysStrict": true,
+    "baseUrl": "./",
     "checkJs": false,
+    "isolatedModules": true,
     "jsx": "react",
     "jsxFactory": "React.createElement",
     "lib": [
-      "dom",
       "deno.ns",
+      "dom",
+      "dom.Iterable",
       "esnext"
     ],
+    "moduleResolution": "nodenext",
     "noFallthroughCasesInSwitch": false,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -21,14 +24,19 @@
     "noStrictGenericChecks": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "paths": {
+      "@src/*": ["./src/*"]
+    },
     "removeComments": false,
+    "sourceMap": true,
     "strict": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "suppressExcessPropertyErrors": false,
-    "suppressImplicitAnyIndexErrors": false
+    "suppressImplicitAnyIndexErrors": false,
+    "typeRoots": ["./src/types"]
   },
   "deno": true
 }
