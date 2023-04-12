@@ -1,6 +1,6 @@
 {
   "name": "deno-html-react-transformer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Deno HTML-to-React Transformer",
   "author": {
     "name": "Chakrit W.",

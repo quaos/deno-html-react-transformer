@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v1.2.1
+- Update Eggs config
+
 ## v1.2.0
 - Update React to v18+
 - Update other dependencies versions
