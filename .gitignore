@@ -5,6 +5,8 @@ npm-debug.*
 
 #example/public/assets/js/client.bundle.js
 
+*.log
+
 .env
 **/.env
 *.env

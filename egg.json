@@ -1,10 +1,10 @@
 {
-  "$schema": "https://x.nest.land/eggs@0.3.2/src/schema.json",
+  "$schema": "https://x.nest.land/eggy@0.3.50/src/schema.json",
   "name": "html-react-transformer",
   "entry": "./mod.ts",
   "description": "Tool for Transforming HTML/DOM to React element in Deno",
   "homepage": "https://github.com/quaos/deno-html-react-transformer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "files": [
     "README.md",
     "CHANGELOG.md",
@@ -12,18 +12,21 @@
     "tsconfig.json",
     "deno.json",
     "deno.lock",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "example/src/**/*.ts",
-    "example/src/**/*.tsx",
-    "example/public/**/*.html",
-    "example/public/**/*.png",
-    "example/public/**/*.json"
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "./example/src/**/*.ts",
+    "./example/src/**/*.tsx",
+    "./example/public/**/*.html",
+    "./example/public/assets/img/*.png",
+    "./example/public/assets/js/*.json"
   ],
-  "ignore": [],
   "checkFormat": false,
   "checkTests": false,
   "checkInstallation": false,
   "check": true,
-  "unlisted": false
+  "unlisted": false,
+  "ignore": [],
+  "checkAll": true,
+  "repository": "https://github.com/quaos/deno-html-react-transformer",
+  "releaseType": "patch"
 }
